@@ -3,11 +3,11 @@ using UnityEngine;
 public class DungeonGenerator : MonoBehaviour
 
 {
-    public enum TileType
-    {
-        Wall,
-        Floor
-    }
+    //public enum TileType
+    //{
+    //    Wall,
+    //    Floor
+    //}
 
     public int width = 20;
     public int height = 20;
@@ -103,12 +103,28 @@ public class DungeonGenerator : MonoBehaviour
             playerPos = new Vector3(px * tileSize, 0.5f, py * tileSize);
             monsterPos = new Vector3(mx * tileSize, 0.5f, my * tileSize);
 
+            UnityEngine.Debug.Log("PLAYERPOS: " + playerPos + " MONSTERPOS: " + monsterPos);
+
             float dist = Vector3.Distance(playerPos, monsterPos);
             if(dist >= minSpawnDistance)
             {
                 validSpawn = true;
                 GameObject player = Instantiate(playerPrefab, playerPos, Quaternion.identity);
                 Instantiate(monsterPrefab, monsterPos, Quaternion.identity);
+
+                MonsterAgent monster = GameObject.FindGameObjectWithTag("Monster")?.GetComponent<MonsterAgent>();
+
+                //monster.player = player.transform;
+
+                // Koordinaten speichern
+                QLearningAgent qAgent = monster.GetComponent<QLearningAgent>();
+                if (qAgent != null)
+                {
+                    qAgent.gridX = mx;
+                    qAgent.gridY = my;
+                    qAgent.grid = grid; // Übergib das Dungeon-Grid
+                    qAgent.player = player.transform;
+                }
 
                 CameraFollow camFollow = GameObject.FindGameObjectWithTag("MainCamera")?.GetComponent<CameraFollow>();
                 if (camFollow != null)

@@ -148,16 +148,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd5b67a8c86b4e641905d82d760f0a70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  width: 100
-  height: 100
-  walkSteps: 4000
+  width: 20
+  height: 20
+  walkSteps: 400
   numWalkers: 5
   floorPreFab: {fileID: 6839280746022864965, guid: 759269631803c064b88ed20a231f4f8d, type: 3}
   wallPefab: {fileID: 3601096089563784849, guid: c3631e3f41b1377489732ce24ad99d9c, type: 3}
   playerPrefab: {fileID: 834767479749964837, guid: f8957f629b04ab0499f37328229076a0, type: 3}
   monsterPrefab: {fileID: 6025304822551857588, guid: 03c44a41a0bc5cf4ab80160bc4b550e5, type: 3}
   tileSize: 1
-  minSpawnDistance: 100
+  minSpawnDistance: 5
 --- !u!4 &367897081
 Transform:
   m_ObjectHideFlags: 0
@@ -323,6 +323,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e95e0bef524062344a3672dabe3d6d94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  player: {fileID: 0}
 --- !u!1 &1828692237
 GameObject:
   m_ObjectHideFlags: 0
