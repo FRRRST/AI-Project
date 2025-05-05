@@ -6,12 +6,6 @@ using UnityEngine;
 public class DungeonGenerator : MonoBehaviour
 
 {
-    //public enum TileType
-    //{
-    //    Wall,
-    //    Floor
-    //}
-
     public int width = 20;
     public int height = 20;
     public int walkSteps = 100;
