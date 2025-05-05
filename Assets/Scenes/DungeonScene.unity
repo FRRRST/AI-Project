@@ -150,9 +150,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   width: 20
   height: 20
-  walkSteps: 400
+  walkSteps: 100
   numWalkers: 5
-  floorPreFab: {fileID: 6839280746022864965, guid: 759269631803c064b88ed20a231f4f8d, type: 3}
+  floorPreFab: {fileID: 5351871140724804486, guid: 00ae5f832ceab6a48bc02de613dde0db, type: 3}
   wallPefab: {fileID: 3601096089563784849, guid: c3631e3f41b1377489732ce24ad99d9c, type: 3}
   playerPrefab: {fileID: 834767479749964837, guid: f8957f629b04ab0499f37328229076a0, type: 3}
   monsterPrefab: {fileID: 6025304822551857588, guid: 03c44a41a0bc5cf4ab80160bc4b550e5, type: 3}

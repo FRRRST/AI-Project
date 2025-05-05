@@ -32,6 +32,27 @@ public class MonsterAgent : MonoBehaviour
 
         // (Rotation bleibt wie gehabt)
 
+        Vector3 direction = (targetPosition - transform.position).normalized;
+
+        if (direction != Vector3.zero)
+        {
+            Quaternion toRotation = Quaternion.LookRotation(direction, Vector3.up);
+
+            // Sanfte Rotation (solange nicht fast schon richtig ausgerichtet)
+            while (Quaternion.Angle(transform.rotation, toRotation) > 1f)
+            {
+                transform.rotation = Quaternion.RotateTowards(
+                    transform.rotation,
+                    toRotation,
+                    rotationSpeed * Time.deltaTime
+                );
+                yield return null;
+            }
+
+            // Am Ende: Rotation exakt setzen
+            transform.rotation = toRotation;
+        }
+
         float elapsed = 0f;
         Vector3 startPos = transform.position;
 
