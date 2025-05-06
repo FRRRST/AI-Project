@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
 using System.Linq;
+using static System.Net.Mime.MediaTypeNames;
+using System.IO;
 
 public class QLearningAgent : MonoBehaviour
 {
@@ -16,29 +18,42 @@ public class QLearningAgent : MonoBehaviour
     public Transform player;
 
     [Header("Q-Learning Parameter")]
-    public float learningRate = 0.1f;
-    public float discountFactor = 0.9f;
-    public float explorationRate = 0.5f; // Anfang hoch → später sinkt
+    public float learningRate = 0.1f; //schnelligkeit des Lernens
+    public float discountFactor = 0.9f; //wichtigkeit der Zukunft
+    public float explorationRate = 0.5f; //
     public float minExplorationRate = 0.05f;
     public float explorationDecay = 0.995f;
+    public float qValueDecay = 0.999f;
     float maxPenalty = -100f;
 
     [Header("Entscheidungstiming")]
     public float decisionInterval = 0.2f;
     private float decisionTimer = 0f;
 
+    [Header("Q-Learning Modus")]
+    public bool saveLearning = false;
+    public bool loadLearning = false;
+
+    [Header("Auto-Save")]
+    public bool autoSave = false;
+    public float autoSaveInterval = 120f;
+    private float autoSaveTimer = 0f;
+
+    [Header("Episoden")]
+    public int episodeCounter = 0;
+
     public Dictionary<StateActionPair, float> qTable = new();
     private MonsterAgent movement;
 
     public Vector2Int[] actions = {
-        new Vector2Int(0, 1),   // Up
-        new Vector2Int(0, -1),  // Down
-        new Vector2Int(1, 0),   // Right
-        new Vector2Int(-1, 0),  // Left
-        new Vector2Int(1, 1),    // ↗
-        new Vector2Int(1, -1),   // ↘
-        new Vector2Int(-1, 1),   // ↖
-        new Vector2Int(-1, -1)   // ↙
+        new Vector2Int(0, 1),   //up
+        new Vector2Int(0, -1),  //down
+        new Vector2Int(1, 0),   //right
+        new Vector2Int(-1, 0),  //left
+        new Vector2Int(1, 1),    //ur
+        new Vector2Int(1, -1),   //dr
+        new Vector2Int(-1, 1),   //ul
+        new Vector2Int(-1, -1)   //dl
     };
 
     private bool waitingForMovement = false;
@@ -48,6 +63,8 @@ public class QLearningAgent : MonoBehaviour
     void Start()
     {
         movement = GetComponent<MonsterAgent>();
+
+        if (loadLearning) LoadQTable("qtable.txt");
     }
 
     void Update()
@@ -57,6 +74,23 @@ public class QLearningAgent : MonoBehaviour
         {
             Step();
             decisionTimer = decisionInterval;
+        }
+
+        if (Input.GetKeyDown(KeyCode.S) && saveLearning)
+        {
+            SaveQTable("qtable.txt");
+            UnityEngine.Debug.Log("Q-Tabelle manuell gespeichert.");
+        }
+
+        if(autoSave)
+        {
+            autoSaveTimer += Time.deltaTime;
+            if (autoSaveTimer >= autoSaveInterval)
+            {
+                SaveQTable("qtable.txt");
+                UnityEngine.Debug.Log("Q-Tabelle automatisch gespeichert.");
+                autoSaveTimer = 0f;
+            }
         }
     }
 
@@ -70,34 +104,29 @@ public class QLearningAgent : MonoBehaviour
 
         if (!IsWalkable(newState))
         {
-            // Bonus: Feedback trotzdem geben
+            //massive Strafe wenn das Monster gegen die Wand läuft
             float reward = maxPenalty;
             float oldQ = GetQ(currentState, action);
-            float maxFutureQ = GetMaxQ(currentState);
+            float maxFutureQ = GetMaxQ(currentState); //beste erwartete Zukunft
             float newQ = oldQ + learningRate * (reward + discountFactor * maxFutureQ - oldQ);
             qTable[new StateActionPair(currentState, action)] = newQ;
 
-            // KEIN Movement – wir machen sofort weiter
+            //kein Movement möglich, einfach weiter machen
             UnityEngine.Debug.Log("Not walkable");
             return;
         }
-
-
-        //if (!IsWalkable(newState))
-        //    return;
 
         lastState = currentState;
         lastAction = action;
         gridX = newState.x;
         gridY = newState.y;
 
-        // Bewegung starten
+        //bewegung starten
         waitingForMovement = true;
         movement.onMoveComplete = () =>
         {
             float reward = GetReward(newState);
 
-            // ➕ 1. Extra-Strafe, wenn sich das Monster vom Spieler entfernt hat
             Vector2Int playerGrid = new Vector2Int(
                 Mathf.FloorToInt(player.position.x / tileSize),
                 Mathf.FloorToInt(player.position.z / tileSize)
@@ -108,7 +137,7 @@ public class QLearningAgent : MonoBehaviour
 
             if (newDist > prevDist)
             {
-                reward -= 2f; // Kleine Strafe für sich Entfernen
+                reward -= 2f; //extra Strafe bei Entfernung vom Spieler
             }
 
             float oldQ = GetQ(lastState, lastAction);
@@ -119,10 +148,9 @@ public class QLearningAgent : MonoBehaviour
 
             foreach (var key in qTable.Keys.ToList())
             {
-                qTable[key] *= 0.999f;
+                qTable[key] *= qValueDecay;
             }
 
-            // Exploration anpassen
             explorationRate *= explorationDecay;
             explorationRate = Mathf.Max(explorationRate, minExplorationRate);
 
@@ -134,42 +162,11 @@ public class QLearningAgent : MonoBehaviour
         
     }
 
-    //void Step()
-    //{
-    //    Vector2Int currentState = new Vector2Int(gridX, gridY);
-    //    Vector2Int action = SelectAction(currentState);
-    //    Vector2Int newState = currentState + action;
-
-    //    if (!IsWalkable(newState))
-    //        return;
-
-    //    // Belohnung holen
-    //    float reward = GetReward(newState);
-
-    //    // Q-Wert-Update
-    //    float oldQ = GetQ(currentState, action);
-    //    float maxFutureQ = GetMaxQ(newState);
-    //    float newQ = oldQ + learningRate * (reward + discountFactor * maxFutureQ - oldQ);
-    //    qTable[new StateActionPair(currentState, action)] = newQ;
-
-    //    // Bewegung ausführen
-    //    movement.MoveTo(action);
-    //    gridX = newState.x;
-    //    gridY = newState.y;
-
-    //    // Exploration senken
-    //    explorationRate *= explorationDecay;
-    //    explorationRate = Mathf.Max(explorationRate, minExplorationRate);
-
-    //    // Debug-Ausgabe (optional)
-    //    UnityEngine.Debug.Log($"@{currentState} → {action} | Reward: {reward:F2} | Q: {newQ:F2} | ε: {explorationRate:F2} | ({gridX},{gridY})");
-    //}
-
-    Vector2Int SelectAction(Vector2Int state)
+    Vector2Int SelectAction(Vector2Int state) //greedy auswahl
     {
-        if (UnityEngine.Random.value < explorationRate)
+        if (UnityEngine.Random.value < explorationRate) //exploration rate ist epsilon
         {
-            return actions[UnityEngine.Random.Range(0, actions.Length)];
+            return actions[UnityEngine.Random.Range(0, actions.Length)]; //exploration aktion zum erkunden
         }
 
         float maxQ = float.NegativeInfinity;
@@ -185,49 +182,32 @@ public class QLearningAgent : MonoBehaviour
             }
         }
 
-        return bestAction;
+        return bestAction; //greedy wahl
     }
 
     float GetReward(Vector2Int newState)
     {
-        // Spieler-Grid ermitteln
+
         Vector2Int playerGrid = new Vector2Int(
             Mathf.FloorToInt(player.position.x / tileSize),
             Mathf.FloorToInt(player.position.z / tileSize)
         );
 
-        int distance = Mathf.Abs(playerGrid.x - newState.x) + Mathf.Abs(playerGrid.y - newState.y);
+        int dx = Mathf.Abs(playerGrid.x - gridX);
+        int dy = Mathf.Abs(playerGrid.y - gridY);
+        int distance = Mathf.Max(dx, dy);
 
         if (distance <= 1)
-            return 100f; // Ziel erreicht
+        {
+            RespawnCharacters();
+            episodeCounter++;
+            return 100f; //großer Reward, wenn Spieler gefunden wird
+        }
 
-        // Je weiter weg → desto negativer
         float reward = -distance;
 
-        //return Mathf.Max(reward, maxPenalty);
         return reward;
     }
-
-
-
-    //float GetReward(Vector2Int newState)
-    //{
-    //    int playerGridX = Mathf.RoundToInt(player.position.x / tileSize);
-    //    int playerGridY = Mathf.RoundToInt(player.position.z / tileSize);
-    //    Vector2Int playerPos = new(playerGridX, playerGridY);
-
-    //    float distance = Vector2Int.Distance(newState, playerPos);
-
-    //    // Nähebasiert:
-    //    if (distance < 0.5f)
-    //        return 100f; // Treffer
-
-    //    // Je näher, desto besser (linear abgeschwächt)
-    //    float maxPenalty = -10f;
-    //    float maxDistance = 10f;
-    //    float scaled = Mathf.Lerp(0f, maxPenalty, distance / maxDistance);
-    //    return Mathf.Max(scaled, maxPenalty); // nie schlimmer als -10
-    //}
 
     float GetQ(Vector2Int state, Vector2Int action)
     {
@@ -254,7 +234,66 @@ public class QLearningAgent : MonoBehaviour
         return grid[pos.x, pos.y] == TileType.Floor;
     }
 
-    // Struct bleibt wie gehabt
+    public void SaveQTable(string filename)
+    {
+        List<string> lines = new();
+
+        foreach (var entry in qTable)
+        {
+            var s = entry.Key.state;
+            var a = entry.Key.action;
+            lines.Add($"{s.x},{s.y},{a.x},{a.y},{entry.Value}");
+        }
+
+        File.WriteAllLines(Path.Combine(UnityEngine.Application.persistentDataPath, filename), lines);
+        UnityEngine.Debug.Log("Q-Table saved to " + filename);
+    }
+
+    public void LoadQTable(string filename)
+    {
+        qTable.Clear();
+        string[] lines = File.ReadAllLines(Path.Combine(UnityEngine.Application.persistentDataPath, filename));
+
+        foreach (string line in lines)
+        {
+            string[] parts = line.Split(',');
+            Vector2Int state = new(int.Parse(parts[0]), int.Parse(parts[1]));
+            Vector2Int action = new(int.Parse(parts[2]), int.Parse(parts[3]));
+            float qValue = float.Parse(parts[4]);
+
+            qTable[new StateActionPair(state, action)] = qValue;
+        }
+
+        UnityEngine.Debug.Log("Q-Table loaded from " + filename);
+    }
+
+    public void RespawnCharacters()
+    {
+        Vector2Int playerPos, monsterPos;
+        int tries = 0;
+
+        do
+        {
+            int px = UnityEngine.Random.Range(1, grid.GetLength(0) - 1);
+            int py = UnityEngine.Random.Range(1, grid.GetLength(1) - 1);
+            int mx = UnityEngine.Random.Range(1, grid.GetLength(0) - 1);
+            int my = UnityEngine.Random.Range(1, grid.GetLength(1) - 1);
+
+            playerPos = new Vector2Int(px, py);
+            monsterPos = new Vector2Int(mx, my);
+            tries++;
+
+        } while ((grid[playerPos.x, playerPos.y] != TileType.Floor
+                 || grid[monsterPos.x, monsterPos.y] != TileType.Floor
+                 || Vector2Int.Distance(playerPos, monsterPos) < 5f) && tries < 100);
+
+        player.position = new Vector3(playerPos.x * tileSize, 0.5f, playerPos.y * tileSize);
+        transform.position = new Vector3(monsterPos.x * tileSize, 0.5f, monsterPos.y * tileSize);
+
+        gridX = monsterPos.x;
+        gridY = monsterPos.y;
+    }
+
     public struct StateActionPair
     {
         public Vector2Int state;

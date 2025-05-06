@@ -1,21 +1,35 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEngine;
+using static System.Net.Mime.MediaTypeNames;
 
 public class DungeonGenerator : MonoBehaviour
 
 {
+    [Header("Dungeon Settings")]
     public int width = 20;
     public int height = 20;
+
+    [Header("Walker Settings")]
     public int walkSteps = 100;
     public int numWalkers = 5;
+
+    [Header("Prefabs")]
     public GameObject floorPreFab;
     public GameObject wallPefab;
     public GameObject playerPrefab;
     public GameObject monsterPrefab;
+
+    [Header("Monster Settings")]
     public float tileSize = 1.0f;
     public float minSpawnDistance = 5f;
+
+    [Header("Save Settings")]
+    public bool saveDungeon = false;
+    public bool loadSavedDungeon = false;
 
     private TileType[,] grid;
 
@@ -25,20 +39,31 @@ public class DungeonGenerator : MonoBehaviour
     {
         int tries = 0;
 
-        while(!dungeonAccepted)
+        while (!dungeonAccepted)
         {
             tries++;
             UnityEngine.Debug.Log("try: " + tries);
-            GenerateDungeon();
+
+            if (!loadSavedDungeon)
+            { 
+                GenerateDungeon();
+            } 
+            else
+            {
+                LoadGridFromFile("trainingDungeon.txt");
+            }
+            
             BuildDungeon();
             SpawnCharacters();
 
-            if(tries > 100)
+            if (tries > 100)
             {
                 UnityEngine.Debug.LogWarning("Unlösbarer Dungeon! Bitte Konfiguration prüfen.");
             }
         }
         
+
+        if (saveDungeon) SaveGridToFile("trainingDungeon.txt");
     }
 
     void GenerateDungeon()
@@ -139,15 +164,12 @@ public class DungeonGenerator : MonoBehaviour
 
                 MonsterAgent monster = GameObject.FindGameObjectWithTag("Monster")?.GetComponent<MonsterAgent>();
 
-                //monster.player = player.transform;
-
-                // Koordinaten speichern
                 QLearningAgent qAgent = monster.GetComponent<QLearningAgent>();
                 if (qAgent != null)
                 {
                     qAgent.gridX = mx;
                     qAgent.gridY = my;
-                    qAgent.grid = grid; // Übergib das Dungeon-Grid
+                    qAgent.grid = grid;
                     qAgent.player = player.transform;
                 }
 
@@ -170,11 +192,10 @@ public class DungeonGenerator : MonoBehaviour
 
         while (openSet.Count > 0)
         {
-            // Günstigster Knoten suchen
             Node current = openSet.OrderBy(n => n.fCost).First();
 
             if (current.position == goal)
-                return true; // Pfad gefunden
+                return true;
 
             openSet.Remove(current);
             closedSet.Add(current.position);
@@ -207,12 +228,12 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
 
-        return false; // Kein Pfad
+        return false;
     }
 
     private int Heuristic(Vector2Int a, Vector2Int b)
     {
-        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y); // Manhattan
+        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }
 
     private List<Vector2Int> GetNeighbors(Vector2Int pos)
@@ -234,6 +255,42 @@ public class DungeonGenerator : MonoBehaviour
         }
 
         return neighbors;
+    }
+
+    public void SaveGridToFile(string filename)
+    {
+        StringBuilder sb = new StringBuilder();
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                sb.Append(grid[x, y] == TileType.Floor ? "1" : "0");
+            }
+            sb.AppendLine();
+        }
+
+        File.WriteAllText(Path.Combine(UnityEngine.Application.persistentDataPath, filename), sb.ToString());
+        UnityEngine.Debug.Log("Dungeon saved to " + Path.Combine(UnityEngine.Application.persistentDataPath, filename));
+    }
+
+    public void LoadGridFromFile(string filename)
+    {
+        string[] lines = File.ReadAllLines(Path.Combine(UnityEngine.Application.persistentDataPath, filename));
+        width = lines[0].Length;
+        height = lines.Length;
+
+        grid = new TileType[width, height];
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                grid[x, y] = lines[y][x] == '1' ? TileType.Floor : TileType.Wall;
+            }
+        }
+
+        UnityEngine.Debug.Log("Dungeon loaded.");
     }
 
     private class Node
