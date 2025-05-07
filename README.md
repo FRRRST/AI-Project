@@ -1,4 +1,8 @@
 # KI Projekt Csongor Olah
+## Unity Version
+Dieses Projekt wurde mit der Unity version 6000.0.24f1 entwickelt.
+
+Als IDE wurde Visual Studio Community 2022 genutzt.
 ## Vortrainierte KI
 Die KI in der TestScene hat etwa 15-16 Stunden Lernzeit.
 ## Quellen
