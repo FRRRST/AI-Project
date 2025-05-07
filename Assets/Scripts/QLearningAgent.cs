@@ -244,6 +244,7 @@ public class QLearningAgent : MonoBehaviour
             var a = entry.Key.action;
             lines.Add($"{s.x},{s.y},{a.x},{a.y},{entry.Value}");
         }
+        lines.Add($"EXPLORATION,{explorationRate}");
 
         File.WriteAllLines(Path.Combine(UnityEngine.Application.persistentDataPath, filename), lines);
         UnityEngine.Debug.Log("Q-Table saved to " + filename);
@@ -256,6 +257,13 @@ public class QLearningAgent : MonoBehaviour
 
         foreach (string line in lines)
         {
+            if (line.StartsWith("EXPLORATION"))
+            {
+                string[] tokens = line.Split(',');
+                explorationRate = float.Parse(tokens[1]);
+                continue;
+            }
+
             string[] parts = line.Split(',');
             Vector2Int state = new(int.Parse(parts[0]), int.Parse(parts[1]));
             Vector2Int action = new(int.Parse(parts[2]), int.Parse(parts[3]));

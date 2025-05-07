@@ -1722,9 +1722,13 @@ MonoBehaviour:
   explorationRate: 0.2
   minExplorationRate: 0.05
   explorationDecay: 0.995
+  qValueDecay: 0.999
   decisionInterval: 0.2
   saveLearning: 1
   loadLearning: 1
+  autoSave: 1
+  autoSaveInterval: 120
+  episodeCounter: 0
   actions:
   - {x: 0, y: 1}
   - {x: 0, y: -1}
