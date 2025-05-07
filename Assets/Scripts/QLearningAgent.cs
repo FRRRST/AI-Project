@@ -143,7 +143,7 @@ public class QLearningAgent : MonoBehaviour
             float oldQ = GetQ(lastState, lastAction);
             float maxFutureQ = GetMaxQ(newState);
 
-            float newQ = oldQ + learningRate * (reward + discountFactor * maxFutureQ - oldQ);
+            float newQ = oldQ + learningRate * (reward + discountFactor * maxFutureQ - oldQ); //Q-Learning Update Gleichung
             qTable[new StateActionPair(lastState, lastAction)] = newQ;
 
             foreach (var key in qTable.Keys.ToList())
@@ -195,7 +195,7 @@ public class QLearningAgent : MonoBehaviour
 
         int dx = Mathf.Abs(playerGrid.x - gridX);
         int dy = Mathf.Abs(playerGrid.y - gridY);
-        int distance = Mathf.Max(dx, dy);
+        int distance = Mathf.Max(dx, dy); //Chebyshev - Distanz
 
         if (distance <= 1)
         {
