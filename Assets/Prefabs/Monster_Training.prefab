@@ -1724,9 +1724,9 @@ MonoBehaviour:
   explorationDecay: 0.995
   qValueDecay: 0.999
   decisionInterval: 0.2
-  saveLearning: 1
+  saveLearning: 0
   loadLearning: 1
-  autoSave: 1
+  autoSave: 0
   autoSaveInterval: 120
   episodeCounter: 0
   actions:
