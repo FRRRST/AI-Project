@@ -1,4 +1,4 @@
-# KI Projekt Csongor Olah
+# KI Projekt
 ## Unity Version
 Dieses Projekt wurde mit der Unity version 6000.0.24f1 entwickelt.
 
